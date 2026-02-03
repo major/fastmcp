@@ -1,11 +1,20 @@
 """Client-side telemetry helpers."""
 
+from __future__ import annotations
+
 from collections.abc import Generator
 from contextlib import contextmanager
+from typing import TYPE_CHECKING, Any
 
-from opentelemetry.trace import Span, SpanKind, Status, StatusCode
+if TYPE_CHECKING:
+    pass
 
-from fastmcp.telemetry import get_tracer
+from fastmcp.telemetry import OTEL_AVAILABLE, get_tracer
+
+if OTEL_AVAILABLE:
+    from opentelemetry.trace import SpanKind, Status, StatusCode
+else:
+    from fastmcp.telemetry import _NoOpSpan
 
 
 @contextmanager
@@ -15,11 +24,15 @@ def client_span(
     component_key: str,
     session_id: str | None = None,
     resource_uri: str | None = None,
-) -> Generator[Span, None, None]:
+) -> Generator[Any, None, None]:
     """Create a CLIENT span with standard MCP attributes.
 
     Automatically records any exception on the span and sets error status.
     """
+    if not OTEL_AVAILABLE:
+        yield _NoOpSpan()
+        return
+
     tracer = get_tracer()
     with tracer.start_as_current_span(name, kind=SpanKind.CLIENT) as span:
         attrs: dict[str, str] = {

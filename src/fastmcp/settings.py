@@ -347,6 +347,20 @@ class Settings(BaseSettings):
         ),
     ] = "stable"
 
+    telemetry_enabled: Annotated[
+        bool,
+        Field(
+            description=inspect.cleandoc(
+                """
+                Controls whether OpenTelemetry instrumentation is enabled.
+                When True (default), telemetry is active if opentelemetry-api is installed.
+                When False, telemetry is disabled even if opentelemetry-api is available.
+                Set via FASTMCP_TELEMETRY_ENABLED environment variable.
+                """
+            ),
+        ),
+    ] = True
+
     decorator_mode: Annotated[
         Literal["function", "object"],
         Field(

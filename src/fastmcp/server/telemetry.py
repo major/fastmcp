@@ -1,13 +1,23 @@
 """Server-side telemetry helpers."""
 
+from __future__ import annotations
+
 from collections.abc import Generator
 from contextlib import contextmanager
+from typing import TYPE_CHECKING, Any
 
 from mcp.server.lowlevel.server import request_ctx
-from opentelemetry.context import Context
-from opentelemetry.trace import Span, SpanKind, Status, StatusCode
 
-from fastmcp.telemetry import extract_trace_context, get_tracer
+if TYPE_CHECKING:
+    from opentelemetry.context import Context
+    from opentelemetry.trace import Span
+
+from fastmcp.telemetry import OTEL_AVAILABLE, extract_trace_context, get_tracer
+
+if OTEL_AVAILABLE:
+    from opentelemetry.trace import SpanKind, Status, StatusCode
+else:
+    from fastmcp.telemetry import _NoOpSpan
 
 
 def get_auth_span_attributes() -> dict[str, str]:
@@ -60,11 +70,15 @@ def server_span(
     component_type: str,
     component_key: str,
     resource_uri: str | None = None,
-) -> Generator[Span, None, None]:
+) -> Generator[Span | Any, None, None]:
     """Create a SERVER span with standard MCP attributes and auth context.
 
     Automatically records any exception on the span and sets error status.
     """
+    if not OTEL_AVAILABLE:
+        yield _NoOpSpan()
+        return
+
     tracer = get_tracer()
     with tracer.start_as_current_span(
         name,
@@ -101,12 +115,16 @@ def delegate_span(
     name: str,
     provider_type: str,
     component_key: str,
-) -> Generator[Span, None, None]:
+) -> Generator[Span | Any, None, None]:
     """Create an INTERNAL span for provider delegation.
 
     Used by FastMCPProvider when delegating to mounted servers.
     Automatically records any exception on the span and sets error status.
     """
+    if not OTEL_AVAILABLE:
+        yield _NoOpSpan()
+        return
+
     tracer = get_tracer()
     with tracer.start_as_current_span(f"delegate {name}") as span:
         span.set_attributes(
