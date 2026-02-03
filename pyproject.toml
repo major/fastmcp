@@ -9,7 +9,6 @@ dependencies = [
     "httpx>=0.28.1,<1.0",
     "mcp>=1.24.0,<2.0",
     "openapi-pydantic>=0.5.1",
-    "opentelemetry-api>=1.20.0",
     "packaging>=24.0",
     "platformdirs>=4.0.0",
     "rich>=13.9.4",
@@ -54,11 +53,12 @@ classifiers = [
 anthropic = ["anthropic>=0.40.0"]
 openai = ["openai>=1.102.0"]
 tasks = ["pydocket>=0.17.2"]
+otel = ["opentelemetry-api>=1.20.0"]
 
 [dependency-groups]
 dev = [
     "dirty-equals>=0.9.0",
-    "fastmcp[anthropic,openai,tasks]",
+    "fastmcp[anthropic,openai,tasks,otel]",
     # add optional dependencies for fastmcp dev
     "fastapi>=0.115.12",
     "opentelemetry-sdk>=1.20.0",
