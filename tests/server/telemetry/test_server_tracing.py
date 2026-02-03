@@ -12,6 +12,8 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import NotFoundError, ToolError
 from fastmcp.server.auth import AccessToken
 
+pytest.importorskip("opentelemetry")
+
 
 class TestToolTracing:
     async def test_call_tool_creates_span(self, trace_exporter: InMemorySpanExporter):

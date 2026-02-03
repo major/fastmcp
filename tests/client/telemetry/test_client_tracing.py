@@ -11,6 +11,8 @@ from opentelemetry.trace import SpanKind, StatusCode
 from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
 
+pytest.importorskip("opentelemetry")
+
 
 class TestClientToolTracing:
     """Tests for client tool call tracing."""

@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import pytest
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from fastmcp import FastMCP
+
+pytest.importorskip("opentelemetry")
 
 
 class TestFastMCPProviderTracing:

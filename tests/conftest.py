@@ -4,15 +4,31 @@ import socket
 import sys
 from collections.abc import Callable, Generator
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
-from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from fastmcp.utilities.tests import temporary_settings
+
+# Try to import OpenTelemetry SDK components
+try:
+    from opentelemetry import trace
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+    from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
+        InMemorySpanExporter,
+    )
+
+    OTEL_SDK_AVAILABLE = True
+except ImportError:
+    OTEL_SDK_AVAILABLE = False
+    trace = None  # type: ignore
+    TracerProvider = None  # type: ignore
+    SimpleSpanProcessor = None  # type: ignore
+    InMemorySpanExporter = None  # type: ignore
+
+if TYPE_CHECKING:
+    pass
 
 # Use SelectorEventLoop on Windows to avoid ProactorEventLoop crashes
 # See: https://github.com/python/cpython/issues/116773
@@ -107,13 +123,16 @@ def free_port_factory(worker_id):
 
 
 @pytest.fixture(scope="session")
-def otel_trace_provider() -> Generator[
-    tuple[TracerProvider, InMemorySpanExporter], None, None
-]:
+def otel_trace_provider() -> Generator[tuple[Any, Any] | None, None, None]:
     """Configure OTEL SDK with in-memory span exporter for testing.
 
     Session-scoped because TracerProvider can only be set once per process.
     """
+    if not OTEL_SDK_AVAILABLE:
+        yield None
+        return
+
+    assert OTEL_SDK_AVAILABLE
     exporter = InMemorySpanExporter()
     provider = TracerProvider()
     provider.add_span_processor(SimpleSpanProcessor(exporter))
@@ -123,9 +142,13 @@ def otel_trace_provider() -> Generator[
 
 @pytest.fixture
 def trace_exporter(
-    otel_trace_provider: tuple[TracerProvider, InMemorySpanExporter],
-) -> Generator[InMemorySpanExporter, None, None]:
+    otel_trace_provider: tuple[Any, Any] | None,
+) -> Generator[Any, None, None]:
     """Get the span exporter and clear it between tests."""
+    if otel_trace_provider is None:
+        pytest.skip("OpenTelemetry SDK not available")
+
+    assert otel_trace_provider is not None
     _, exporter = otel_trace_provider
     exporter.clear()
     yield exporter

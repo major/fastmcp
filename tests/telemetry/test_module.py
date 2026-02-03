@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import pytest
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from fastmcp.server.telemetry import get_auth_span_attributes
 from fastmcp.telemetry import INSTRUMENTATION_NAME, get_tracer
+
+pytest.importorskip("opentelemetry")
 
 
 class TestGetTracer:
