@@ -94,3 +94,47 @@ jobs:
           FASTMCP_GITHUB_TOKEN: ${{ secrets.FASTMCP_GITHUB_TOKEN }}
           FASTMCP_TEST_AUTH_GITHUB_CLIENT_ID: ${{ secrets.FASTMCP_TEST_AUTH_GITHUB_CLIENT_ID }}
           FASTMCP_TEST_AUTH_GITHUB_CLIENT_SECRET: ${{ secrets.FASTMCP_TEST_AUTH_GITHUB_CLIENT_SECRET }}
+
+  test_without_otel:
+    name: "Tests without OpenTelemetry"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.10"
+
+      - name: Install FastMCP without OTel extra
+        run: uv pip install -e . --system
+
+      - name: Verify OTel is not installed
+        run: |
+          python -c "import opentelemetry" && exit 1 || echo "PASS: OTel not installed"
+
+      - name: Verify FastMCP imports successfully
+        run: |
+          python -c "from fastmcp import FastMCP; print('PASS: FastMCP imports')"
+
+      - name: Verify OTEL_AVAILABLE is False
+        run: |
+          python -c "from fastmcp.telemetry import OTEL_AVAILABLE; assert not OTEL_AVAILABLE"
+
+      - name: Verify server creation works
+        run: |
+          python -c "
+          from fastmcp import FastMCP
+          mcp = FastMCP('test')
+          @mcp.tool
+          def add(a: int, b: int) -> int:
+              return a + b
+          print('PASS: Server with tool created')
+          "
+
+      - name: Run non-telemetry tests
+        run: |
+          uv pip install pytest pytest-asyncio pytest-timeout --system
+          python -m pytest tests/ -v --ignore=tests/telemetry --ignore=tests/server/telemetry --ignore=tests/client/telemetry --ignore=tests/integration_tests -x --timeout=30
